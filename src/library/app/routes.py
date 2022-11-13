@@ -108,7 +108,12 @@ def edit_library_book(library_uid, book_uid):
     ).scalars().first()
     if library_book is None:
         return jsonify({'message': 'not found'}), 404
-    library_book.available_count = request.json['available_count']
+
+    args = schemas.LibraryBookResponseSchema().load(request.json)
+    if 'available_count' in args.keys():
+        library_book.available_count = args['available_count']
+    if 'condition' in args.keys():
+        library_book.book.condition = args['condition']
     db.session.commit()
 
     data = schemas.LibraryBookResponseSchema().dump(library_book.book)

@@ -32,6 +32,8 @@ def fill_reservation(reservation):
     reservation['book'] = requests.get(f'{library_api}/books/{book_uid}').json()
     reservation['library'] = requests.get(f'{library_api}/libraries/{library_uid}').json()
 
+    return reservation
+
 
 @api.route('/reservations', methods=['GET'])
 def list_reservations():
@@ -58,7 +60,7 @@ def take_book():
         args = request.json
         library_uid = args['libraryUid']
         book_uid = args['bookUid']
-        r = session.patch(f"{library_api}/libraries/{library_uid}/books/{book_uid}", json={'available_count': 0})
+        r = session.patch(f"{library_api}/libraries/{library_uid}/books/{book_uid}", json={'availableCount': 0})
         if r.status_code != 200:
             return jsonify(r.json()), r.status_code
 
@@ -66,8 +68,44 @@ def take_book():
         if r.status_code != 201:
             return jsonify(r.json()), r.status_code
 
-        reservation = r.json()
-        fill_reservation(reservation)
+        reservation = fill_reservation(r.json())
         reservation['rating'] = {'stars': stars}
 
     return jsonify(reservation)
+
+
+@api.route('reservations/<reservation_uid>/return', methods=['POST'])
+def return_book(reservation_uid):
+    with requests.Session() as session:
+        session.headers.update(request.headers)
+
+        r = session.post(
+            f'{reservation_api}/reservations/{reservation_uid}/return',
+            json={'date': request.json['date']}
+        )
+        if r.status_code != 200:
+            return jsonify(r.json()), r.status_code
+
+        reservation = fill_reservation(r.json())
+        library_uid = reservation['library']['libraryUid']
+        book_uid = reservation['book']['bookUid']
+
+        rating_delta = 0
+        if reservation['status'] == 'EXPIRED':
+            rating_delta -= 10
+        if reservation['book']['condition'] != request.json['condition']:
+            rating_delta -= 10
+        if rating_delta == 0:
+            rating_delta = 1
+
+        session.patch(
+            f'{library_api}/libraries/{library_uid}/books/{book_uid}',
+            json={'availableCount': 1, 'condition': request.json['condition']}
+        )
+
+        rating = session.get(f'{rating_api}/rating').json()
+        rating['stars'] += rating_delta
+
+        session.patch(f'{rating_api}/rating', json=rating)
+
+    return '', 204
