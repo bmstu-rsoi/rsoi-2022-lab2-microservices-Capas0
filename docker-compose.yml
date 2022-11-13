@@ -31,6 +31,8 @@ services:
 #    entrypoint: 'python manage.py run -h 0.0.0.0 -p 8080'
     depends_on:
       - postgres
+      - library
+      - rating
     restart: always
 
   library:
@@ -49,6 +51,26 @@ services:
     ports:
       - "8060:8060"
 #    entrypoint: 'python manage.py run -h 0.0.0.0 -p 8060'
+    depends_on:
+      - postgres
+    restart: always
+
+  rating:
+    image: rsoi-2022-lab2-rating
+    build:
+      dockerfile: docker/rating/Dockerfile
+      context: .
+    volumes:
+      - ./src/rating/:/app/
+    environment:
+      PORT: 8050
+      FLASK_APP: '__init__'
+      APP_FOLDER: "/app"
+      FLASK_DEBUG: 1
+      DATABASE_URL: "postgresql://program:test@postgres:5432/ratings"
+    ports:
+      - "8050:8050"
+#    entrypoint: 'python manage.py run -h 0.0.0.0 -p 8050'
     depends_on:
       - postgres
     restart: always
