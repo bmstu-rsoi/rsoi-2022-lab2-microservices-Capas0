@@ -27,7 +27,7 @@ class LibraryPaginationResponseSchema(Schema):
 class LibraryBookPaginationRequestSchema(Schema):
     page = fields.Integer(validate=validate.Range(min=0))
     size = fields.Integer(validate=validate.Range(min=1, max=100))
-    showAll = fields.Boolean()
+    show_all = fields.Boolean(data_key='showAll')
 
 
 class LibraryBookResponseSchema(Schema):
