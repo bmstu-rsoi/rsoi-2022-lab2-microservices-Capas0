@@ -3,12 +3,7 @@ from marshmallow import ValidationError
 
 from .base import db
 from .models import Library, Book, LibraryBook
-from .schemas import (
-    LibraryPaginationRequestSchema,
-    LibraryPaginationResponseSchema,
-    LibraryBookPaginationRequestSchema,
-    LibraryBookPaginationResponseSchema
-)
+from . import schemas
 
 api = Blueprint('api', __name__)
 
@@ -40,7 +35,7 @@ def format_validation_error(text, error):
 @api.route('/libraries', methods=['GET'])
 def list_libraries():
     try:
-        args = LibraryPaginationRequestSchema().load(request.args)
+        args = schemas.LibraryPaginationRequestSchema().load(request.args)
     except ValidationError as err:
         return jsonify(format_validation_error('Invalid data', err)), 400
 
@@ -51,13 +46,23 @@ def list_libraries():
         count=True
     )
 
-    return jsonify(LibraryPaginationResponseSchema().dump(libraries)), 200
+    return jsonify(schemas.LibraryPaginationResponseSchema().dump(libraries)), 200
+
+
+@api.route('/libraries/<library_uid>', methods=['GET'])
+def get_library(library_uid):
+    library = db.session.execute(
+        db.select(Library).where(Library.library_uid == library_uid)
+    ).scalars().first()
+    if library is None:
+        return jsonify({}), 404
+    return jsonify(schemas.LibrarySchema().dump(library)), 200
 
 
 @api.route('/libraries/<library_uid>/books', methods=['GET'])
 def get_library_books(library_uid):
     try:
-        args = LibraryBookPaginationRequestSchema().load(request.args)
+        args = schemas.LibraryBookPaginationRequestSchema().load(request.args)
     except ValidationError as err:
         return jsonify(format_validation_error('Invalid data', err)), 400
 
@@ -77,9 +82,35 @@ def get_library_books(library_uid):
         books_items_stmt.limit(per_page).offset((page - 1) * per_page)
     ).all()
 
-    return jsonify(LibraryBookPaginationResponseSchema().dump({
+    return jsonify(schemas.LibraryBookPaginationResponseSchema().dump({
         "items": books_items,
         "page": page,
         "per_page": per_page,
         "total": books_count
     })), 200
+
+
+@api.route('/books/<book_uid>', methods=['GET'])
+def get_book(book_uid):
+    book = db.session.execute(
+        db.select(Book).where(Book.book_uid == book_uid)
+    ).scalars().first()
+    if book is None:
+        return jsonify({}), 404
+    return jsonify(schemas.BookSchema().dump(book)), 200
+
+
+@api.route('/libraries/<library_uid>/books/<book_uid>', methods=['PATCH'])
+def edit_library_book(library_uid, book_uid):
+    library_book = db.session.execute(
+        db.select(LibraryBook).join(Library).join(Book)
+        .where(Library.library_uid == library_uid, Book.book_uid == book_uid)
+    ).scalars().first()
+    if library_book is None:
+        return jsonify({'message': 'not found'}), 404
+    library_book.available_count = request.json['available_count']
+    db.session.commit()
+
+    data = schemas.LibraryBookResponseSchema().dump(library_book.book)
+    data['available_count'] = library_book.available_count
+    return jsonify(data), 200

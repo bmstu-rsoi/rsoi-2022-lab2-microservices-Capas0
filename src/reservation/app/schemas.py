@@ -18,11 +18,7 @@ class ReservationSchema(Schema):
 class TakeBookRequestSchema(Schema):
     book_uid = fields.UUID(data_key='bookUid')
     library_uid = fields.UUID(data_key='libraryUid')
-    till_date = fields.Date(
-        data_key='tillDate',
-        validate=lambda x: x >= date.today(),
-        error_messages={'validator_failed': 'Should be not less than today'}
-    )
+    till_date = fields.Date(data_key='tillDate')
 
 
 class ReturnBookRequestSchema(Schema):

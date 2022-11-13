@@ -29,7 +29,10 @@ def list_reservations():
     username = request.headers.get('X-User-Name')
 
     reservations = db.session.execute(
-        db.select(Reservation).where(Reservation.username == username)
+        db.select(Reservation).where(
+            Reservation.username == username,
+            Reservation.status == Reservation.Status.RENTED
+        )
     ).scalars().all()
     return jsonify(ReservationSchema().dump(reservations, many=True)), 200
 
