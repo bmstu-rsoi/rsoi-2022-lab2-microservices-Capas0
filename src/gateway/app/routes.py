@@ -14,3 +14,9 @@ def list_libraries():
 def get_library_books(library_uid):
     response = requests.get(f'http://library:8060/api/v1/libraries/{library_uid}/books', params=dict(request.args))
     return jsonify(response.json()), response.status_code
+
+
+@api.route('/rating', methods=['GET'])
+def get_rating():
+    response = requests.get('http://rating:8050/api/v1/rating', headers=dict(request.headers))
+    return jsonify(response.json()), response.status_code

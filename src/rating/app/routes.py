@@ -52,11 +52,12 @@ def edit_rating():
 @api.route('/rating', methods=['GET'])
 def get_rating():
     username = request.headers.get('X-User-Name')
-    try:
-        rating = db.session.execute(
-            db.select(Rating).where(Rating.username == username)
-        ).scalars().first()
-    except DataError:
+    rating = db.session.execute(
+        db.select(Rating).where(Rating.username == username)
+    ).scalars().first()
+    if rating is None:
         rating = Rating(username=username, stars=1)
+        db.session.add(rating)
+        db.session.commit()
 
     return jsonify(RatingSchema().dump(rating)), 200
