@@ -30,9 +30,9 @@ services:
       - "8080:8080"
 #    entrypoint: 'python manage.py run -h 0.0.0.0 -p 8080'
     depends_on:
-      - postgres
       - library
       - rating
+      - reservation
     restart: always
 
   library:
@@ -71,6 +71,26 @@ services:
     ports:
       - "8050:8050"
 #    entrypoint: 'python manage.py run -h 0.0.0.0 -p 8050'
+    depends_on:
+      - postgres
+    restart: always
+
+  reservation:
+    image: rsoi-2022-lab2-reservation
+    build:
+      dockerfile: docker/reservation/Dockerfile
+      context: .
+    volumes:
+      - ./src/reservation/:/app/
+    environment:
+      PORT: 8070
+      FLASK_APP: '__init__'
+      APP_FOLDER: "/app"
+      FLASK_DEBUG: 1
+      DATABASE_URL: "postgresql://program:test@postgres:5432/reservations"
+    ports:
+      - "8070:8070"
+#    entrypoint: 'python manage.py run -h 0.0.0.0 -p 8070'
     depends_on:
       - postgres
     restart: always
